@@ -23,7 +23,7 @@ Puntos clave que no hay que olvidar:
 | Componente | Tecnología |
 |---|---|
 | Backend API | Node.js + Express + TypeScript |
-| Base de datos | PostgreSQL |
+| Base de datos | PostgreSQL + Prisma 7 (config en `backend/prisma.config.ts`; cliente generado en `backend/src/generated/prisma`, requiere driver adapter `@prisma/adapter-pg`) |
 | App escritorio (Windows/Mac) | Electron + React + TypeScript (detección de ventana activa con librería tipo `active-win` / `get-windows`) |
 | App tablet/móvil | Web app responsive en React (selección activa de categoría) |
 | Panel admin | React + Recharts |
@@ -69,6 +69,17 @@ npm run build            # compila todos los paquetes
 npm run typecheck        # typecheck de todos los paquetes
 ```
 
+Base de datos (desde `backend/`, o con `--workspace @digital-power/backend`):
+
+```bash
+npm run db:migrate       # crea/aplica migraciones Prisma (desarrollo)
+npm run db:seed          # seed de la Clínica Demo (idempotente)
+npm run db:studio        # explorador visual de la BD
+npx tsx scripts/verify-seed.ts   # comprobación del seed (conteos, PINs, CHECKs)
+```
+
+**BD local:** este Mac ya tiene PostgreSQL 16 de Homebrew (prefijo `~/homebrew`, no está en el PATH estándar) corriendo como servicio en el puerto 5432; el proyecto usa la base `digital_power` con el usuario del sistema sin contraseña (`postgresql://cas@localhost:5432/digital_power` en `backend/.env`). El `psql` está en `~/homebrew/opt/postgresql@16/bin/psql`. En producción será Railway.
+
 ## Variables de entorno
 
 Copiar `.env.example` a `.env` en la raíz y rellenar:
@@ -80,4 +91,6 @@ Copiar `.env.example` a `.env` en la raíz y rellenar:
 
 ## Estado actual
 
-Solo existe la estructura del monorepo y la configuración base. **No hay lógica de negocio implementada todavía.** Las fases de desarrollo (A–E) están definidas en la sección 12 de la especificación.
+- **Hecho (Fase A, parte 1):** esquema PostgreSQL multi-tenant con Prisma (`backend/prisma/schema.prisma`), migración inicial aplicada (con CHECK de doble ámbito sector/empresa en `categories` y `categorization_rules`) y seed de la "Clínica Demo" (3 roles, 4 empleados con PIN hasheado, plantilla de categorización clínica de 9 reglas, 3 plantillas de automatización).
+- **Pendiente de Fase A:** endpoints Express (login por PIN, ON/OFF de sesiones, ingesta de registros) y motor de categorización que consume `categorization_rules` (empresa → sector → fallback "Sin categorizar / revisar").
+- Las fases B–E (desktop, tablet, admin, piloto) están definidas en la sección 12 de la especificación.

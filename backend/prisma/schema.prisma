@@ -1,0 +1,168 @@
+// Esquema multi-tenant del sistema de tracking pasivo de Digital Power.
+// Ver docs/ESPECIFICACION.md §4 (modelo de datos), §6 (inactividad),
+// §8 (qué se captura), §9 (categorización), §10 (coste/informes).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Sector {
+  CLINICA
+  GESTORIA
+  INMOBILIARIA
+}
+
+enum Device {
+  DESKTOP
+  TABLET
+}
+
+enum PatternType {
+  APP
+  DOMAIN
+  TITLE
+}
+
+// Empresa cliente de Digital Power (tenant aislado)
+model Company {
+  id                 String   @id @default(uuid())
+  name               String
+  sector             Sector
+  avgHourlyCostCents Int      @default(2000) @map("avg_hourly_cost_cents") // coste/hora medio en céntimos (§10)
+  inactivityMinutes  Int      @default(10) @map("inactivity_minutes") // umbral de aviso de inactividad (§6)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  roles      Role[]
+  employees  Employee[]
+  sessions   WorkSession[]
+  records    ActivityRecord[]
+  categories Category[]
+  rules      CategorizationRule[]
+
+  @@map("companies")
+}
+
+// Rol dentro de una empresa (Gerente, Recepción, Médico…)
+model Role {
+  id        String @id @default(uuid())
+  companyId String @map("company_id")
+  name      String
+
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employees Employee[]
+
+  @@unique([companyId, name])
+  @@map("roles")
+}
+
+model Employee {
+  id        String   @id @default(uuid())
+  companyId String   @map("company_id")
+  roleId    String   @map("role_id")
+  name      String
+  pinHash   String   @map("pin_hash") // PIN de 4 dígitos hasheado con bcrypt, nunca en claro
+  avatarUrl String?  @map("avatar_url")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  company  Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  role     Role          @relation(fields: [roleId], references: [id])
+  sessions WorkSession[]
+
+  @@index([companyId])
+  @@map("employees")
+}
+
+// Sesión de trabajo ON/OFF (§5)
+model WorkSession {
+  id         String    @id @default(uuid())
+  companyId  String    @map("company_id")
+  employeeId String    @map("employee_id")
+  device     Device
+  startedAt  DateTime  @map("started_at") // hora ON
+  endedAt    DateTime? @map("ended_at") // hora OFF (null = sesión abierta)
+
+  company  Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee Employee         @relation(fields: [employeeId], references: [id])
+  records  ActivityRecord[]
+
+  @@index([companyId, startedAt])
+  @@index([employeeId, startedAt])
+  @@map("sessions")
+}
+
+// Registro de tracking (§8) — tabla de alto volumen: una lectura cada 5-10 s
+model ActivityRecord {
+  id          BigInt   @id @default(autoincrement())
+  companyId   String   @map("company_id") // denormalizado para aislamiento por tenant
+  sessionId   String   @map("session_id")
+  timestamp   DateTime
+  app         String // nombre de la aplicación activa
+  windowTitle String?  @map("window_title") // título de ventana
+  domain      String? // dominio si es navegador
+  categoryId  String?  @map("category_id") // null = sin categorizar
+  isIdle      Boolean  @default(false) @map("is_idle") // inactividad/pausa (§6)
+
+  company  Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  session  WorkSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  category Category?   @relation(fields: [categoryId], references: [id])
+
+  @@index([sessionId, timestamp])
+  @@index([companyId, timestamp])
+  @@map("activity_records")
+}
+
+// Categoría de tiempo. Ámbito: plantilla de sector (sector != null)
+// O ajuste de empresa (companyId != null) — exactamente uno (CHECK en migración).
+model Category {
+  id        String  @id @default(uuid())
+  sector    Sector?
+  companyId String? @map("company_id")
+  name      String
+
+  company Company?             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  rules   CategorizationRule[]
+  records ActivityRecord[]
+
+  @@map("categories")
+}
+
+// Regla de categorización (§9): patrón de app/dominio/título → categoría.
+// NUNCA hardcodear reglas en código. Mismo doble ámbito que Category.
+// Resolución: reglas de empresa (por priority) → reglas de sector (por priority)
+// → fallback "Sin categorizar / revisar" (aplicado por el motor, no es una fila).
+model CategorizationRule {
+  id          String      @id @default(uuid())
+  sector      Sector?
+  companyId   String?     @map("company_id")
+  patternType PatternType @map("pattern_type")
+  pattern     String // coincidencia por subcadena, case-insensitive
+  categoryId  String      @map("category_id")
+  priority    Int         @default(100) // menor = se evalúa antes
+  active      Boolean     @default(true)
+
+  company  Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@index([sector])
+  @@index([companyId])
+  @@map("categorization_rules")
+}
+
+// Plantilla de automatización por sector, para el top 3 del informe (§10)
+model AutomationTemplate {
+  id          String @id @default(uuid())
+  sector      Sector
+  title       String
+  description String
+  sortOrder   Int    @default(100) @map("sort_order")
+
+  @@index([sector])
+  @@map("automation_templates")
+}

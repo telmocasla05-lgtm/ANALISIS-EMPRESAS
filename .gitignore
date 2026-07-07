@@ -28,3 +28,6 @@ Thumbs.db
 
 # Electron
 desktop/release/
+
+# Cliente Prisma generado (se regenera con `prisma generate`)
+backend/src/generated/
