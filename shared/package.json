@@ -1,0 +1,16 @@
+{
+  "name": "@digital-power/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tipos TypeScript compartidos entre backend, desktop, tablet y admin",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

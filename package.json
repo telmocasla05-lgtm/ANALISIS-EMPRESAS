@@ -1,0 +1,24 @@
+{
+  "name": "digital-power-tracking",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Digital Power — Sistema de tracking pasivo multi-tenant",
+  "workspaces": [
+    "shared",
+    "backend",
+    "desktop",
+    "tablet",
+    "admin"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace @digital-power/backend",
+    "dev:desktop": "npm run dev --workspace @digital-power/desktop",
+    "dev:tablet": "npm run dev --workspace @digital-power/tablet",
+    "dev:admin": "npm run dev --workspace @digital-power/admin",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

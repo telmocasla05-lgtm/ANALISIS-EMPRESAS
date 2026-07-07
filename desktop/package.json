@@ -1,0 +1,20 @@
+{
+  "name": "@digital-power/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "App de escritorio Windows/Mac (Electron) — tracking pasivo",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "tsc -p tsconfig.json && electron .",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@digital-power/shared": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "electron": "^33.2.1",
+    "typescript": "^5.7.2"
+  }
+}
