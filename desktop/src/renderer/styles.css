@@ -1,0 +1,414 @@
+/* Digital Power — Fichaje. Diseño limpio y minimalista, botones grandes. */
+
+:root {
+  --bg: #f4f6f8;
+  --card: #ffffff;
+  --text: #1a2733;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --on: #16a34a;
+  --on-dark: #15803d;
+  --off: #dc2626;
+  --off-dark: #b91c1c;
+  --error: #b91c1c;
+  --notice-bg: #fef9c3;
+  --notice-text: #854d0e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.muted {
+  color: var(--muted);
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.small {
+  font-size: 13px;
+}
+
+.error-text {
+  color: var(--error);
+  font-weight: 600;
+  margin: 8px 0;
+  text-align: center;
+}
+
+.notice {
+  background: var(--notice-bg);
+  color: var(--notice-text);
+  border-radius: 10px;
+  padding: 10px 18px;
+  margin: 8px 0 16px;
+  text-align: center;
+}
+
+/* ---- Layout de pantalla ---- */
+
+.screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 32px;
+  position: relative;
+}
+
+.screen-center {
+  justify-content: center;
+}
+
+.screen-center-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.screen-header {
+  margin-bottom: 24px;
+}
+
+/* ---- Botones ---- */
+
+.big-button {
+  border: none;
+  border-radius: 16px;
+  padding: 18px 40px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.big-button:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.big-button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.big-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+/* Botón redondo gigante de ON/OFF */
+.big-button-on,
+.big-button-off {
+  width: 230px;
+  height: 230px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 28px 0;
+  padding: 24px;
+}
+
+.big-button-on {
+  background: var(--on);
+  box-shadow: 0 10px 30px rgba(22, 163, 74, 0.35);
+}
+
+.big-button-on:hover:not(:disabled) {
+  background: var(--on-dark);
+}
+
+.big-button-off {
+  background: var(--off);
+  box-shadow: 0 10px 30px rgba(220, 38, 38, 0.3);
+}
+
+.big-button-off:hover:not(:disabled) {
+  background: var(--off-dark);
+}
+
+.power-label {
+  font-size: 44px;
+  letter-spacing: 2px;
+}
+
+.power-sublabel {
+  font-size: 15px;
+  font-weight: 500;
+  opacity: 0.95;
+  text-align: center;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 10px;
+  text-decoration: underline;
+}
+
+.link-button:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.back-button {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 17px;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.back-button:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.settings-button {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 8px;
+  line-height: 1;
+}
+
+.settings-button:hover {
+  color: var(--text);
+}
+
+/* ---- Configuración ---- */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 36px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+}
+
+.setup-card {
+  width: min(480px, 100%);
+  display: flex;
+  flex-direction: column;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0;
+  font-weight: 600;
+}
+
+.field input {
+  font-size: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  outline: none;
+}
+
+.field input:focus {
+  border-color: var(--primary);
+}
+
+.setup-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* ---- Selección de empleado ---- */
+
+.employee-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 18px;
+  width: min(920px, 100%);
+}
+
+.employee-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 16px;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.15s ease;
+}
+
+.employee-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+}
+
+.employee-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.employee-avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.employee-name {
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ---- PIN ---- */
+
+.pin-dots {
+  display: flex;
+  gap: 18px;
+  margin: 26px 0 6px;
+}
+
+.pin-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--muted);
+}
+
+.pin-dot-filled {
+  background: var(--text);
+  border-color: var(--text);
+}
+
+.pin-dots-error .pin-dot {
+  border-color: var(--error);
+}
+
+.pin-status {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+}
+
+.pin-pad {
+  display: grid;
+  grid-template-columns: repeat(3, 88px);
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.pin-key {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.1s ease, transform 0.05s ease;
+}
+
+.pin-key:hover:not(:disabled) {
+  background: #eef2f7;
+}
+
+.pin-key:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.pin-key:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.pin-key-delete {
+  font-size: 24px;
+}
+
+/* ---- Sesión activa ---- */
+
+.tracking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--on-dark);
+  font-weight: 600;
+  margin: 4px 0 0;
+}
+
+.tracking-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--on);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.elapsed-clock {
+  font-size: 56px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin: 10px 0 0;
+}

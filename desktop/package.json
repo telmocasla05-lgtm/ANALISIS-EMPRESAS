@@ -5,16 +5,25 @@
   "description": "App de escritorio Windows/Mac (Electron) — tracking pasivo",
   "main": "dist/main/index.js",
   "scripts": {
-    "dev": "tsc -p tsconfig.json && electron .",
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit"
+    "dev": "tsc -p tsconfig.json && concurrently -k -n vite,electron \"vite\" \"wait-on tcp:5174 && cross-env ELECTRON_RENDERER_URL=http://localhost:5174 electron .\"",
+    "build": "tsc -p tsconfig.json && vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.renderer.json"
   },
   "dependencies": {
-    "@digital-power/shared": "*"
+    "@digital-power/shared": "*",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
     "electron": "^33.2.1",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vite": "^6.0.5",
+    "wait-on": "^8.0.1"
   }
 }
