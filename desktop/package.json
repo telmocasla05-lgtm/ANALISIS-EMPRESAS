@@ -5,7 +5,7 @@
   "description": "App de escritorio Windows/Mac (Electron) — tracking pasivo",
   "main": "dist/main/index.js",
   "scripts": {
-    "dev": "tsc -p tsconfig.json && concurrently -k -n vite,electron \"vite\" \"wait-on tcp:5174 && cross-env ELECTRON_RENDERER_URL=http://localhost:5174 electron .\"",
+    "dev": "tsc -p tsconfig.json && concurrently -k -s first -n vite,electron \"vite\" \"wait-on tcp:5174 && cross-env ELECTRON_RENDERER_URL=http://localhost:5174 electron .\"",
     "build": "tsc -p tsconfig.json && vite build",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.renderer.json"
   },
