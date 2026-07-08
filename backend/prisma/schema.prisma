@@ -28,9 +28,15 @@ enum PatternType {
   TITLE
 }
 
+enum AdminRole {
+  SUPERADMIN // Digital Power: ve todas las empresas
+  CLIENTE // dueño del negocio cliente: solo ve la suya (company_id obligatorio)
+}
+
 // Empresa cliente de Digital Power (tenant aislado)
 model Company {
   id                 String   @id @default(uuid())
+  slug               String   @unique // identificador corto en URL (ej. pantalla de fichaje /api/empresas/:slug/empleados)
   name               String
   sector             Sector
   avgHourlyCostCents Int      @default(2000) @map("avg_hourly_cost_cents") // coste/hora medio en céntimos (§10)
@@ -44,8 +50,24 @@ model Company {
   records    ActivityRecord[]
   categories Category[]
   rules      CategorizationRule[]
+  adminUsers AdminUser[]
 
   @@map("companies")
+}
+
+// Usuario del panel admin (Digital Power o dueño del cliente), auth email+password (JWT)
+model AdminUser {
+  id               String    @id @default(uuid())
+  email            String    @unique
+  passwordHash     String    @map("password_hash")
+  role             AdminRole
+  companyId        String?   @map("company_id") // null solo para SUPERADMIN
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  company Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("admin_users")
 }
 
 // Rol dentro de una empresa (Gerente, Recepción, Médico…)
@@ -62,14 +84,16 @@ model Role {
 }
 
 model Employee {
-  id        String   @id @default(uuid())
-  companyId String   @map("company_id")
-  roleId    String   @map("role_id")
-  name      String
-  pinHash   String   @map("pin_hash") // PIN de 4 dígitos hasheado con bcrypt, nunca en claro
-  avatarUrl String?  @map("avatar_url")
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
+  id                 String    @id @default(uuid())
+  companyId          String    @map("company_id")
+  roleId             String    @map("role_id")
+  name               String
+  pinHash            String    @map("pin_hash") // PIN de 4 dígitos hasheado con bcrypt, nunca en claro
+  avatarUrl          String?   @map("avatar_url")
+  active             Boolean   @default(true)
+  failedPinAttempts  Int       @default(0) @map("failed_pin_attempts") // se resetea al acertar el PIN
+  lockedUntil        DateTime? @map("locked_until") // bloqueo temporal tras 5 fallos seguidos
+  createdAt          DateTime  @default(now()) @map("created_at")
 
   company  Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   role     Role          @relation(fields: [roleId], references: [id])

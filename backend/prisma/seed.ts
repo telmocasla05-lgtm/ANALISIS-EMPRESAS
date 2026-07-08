@@ -4,12 +4,19 @@
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient, Sector, PatternType } from '../src/generated/prisma/client.js';
+import { PrismaClient, Sector, PatternType, AdminRole } from '../src/generated/prisma/client.js';
 
 const adapter = new PrismaPg({ connectionString: process.env['DATABASE_URL'] });
 const prisma = new PrismaClient({ adapter });
 
 const DEMO_COMPANY = 'Clínica Demo';
+const DEMO_SLUG = 'clinica-demo';
+
+// Credenciales solo para desarrollo — en producción las crea Digital Power.
+const ADMIN_USERS = [
+  { email: 'superadmin@digitalpower.dev', password: 'digitalpower', role: AdminRole.SUPERADMIN, forCompany: false },
+  { email: 'admin@clinicademo.dev', password: 'clinicademo', role: AdminRole.CLIENTE, forCompany: true },
+];
 
 // PINs solo para desarrollo — en producción los asigna Digital Power por empleado.
 const EMPLOYEES = [
@@ -68,6 +75,7 @@ const CLINIC_AUTOMATIONS = [
 
 async function main() {
   // ── Limpieza (orden inverso a las FKs) ──────────────────────────────
+  await prisma.adminUser.deleteMany({ where: { email: { in: ADMIN_USERS.map((a) => a.email) } } });
   await prisma.company.deleteMany({ where: { name: DEMO_COMPANY } }); // cascada: roles, empleados, sesiones, registros
   await prisma.categorizationRule.deleteMany({ where: { sector: Sector.CLINICA } });
   await prisma.category.deleteMany({ where: { sector: Sector.CLINICA } });
@@ -98,6 +106,7 @@ async function main() {
   const company = await prisma.company.create({
     data: {
       name: DEMO_COMPANY,
+      slug: DEMO_SLUG,
       sector: Sector.CLINICA,
       avgHourlyCostCents: 2000, // 20 €/h de coste medio (§10)
       inactivityMinutes: 10,
@@ -118,6 +127,18 @@ async function main() {
     });
   }
 
+  // ── Usuarios admin de demo (panel) ──────────────────────────────────
+  for (const admin of ADMIN_USERS) {
+    await prisma.adminUser.create({
+      data: {
+        email: admin.email,
+        passwordHash: await bcrypt.hash(admin.password, 10),
+        role: admin.role,
+        companyId: admin.forCompany ? company.id : null,
+      },
+    });
+  }
+
   // ── Resumen ─────────────────────────────────────────────────────────
   const counts = {
     empresas: await prisma.company.count(),
@@ -126,8 +147,10 @@ async function main() {
     categorias: await prisma.category.count(),
     reglas: await prisma.categorizationRule.count(),
     plantillasAutomatizacion: await prisma.automationTemplate.count(),
+    adminUsers: await prisma.adminUser.count(),
   };
   console.log('Seed completado:', counts);
+  console.log(`Slug de la empresa demo: ${DEMO_SLUG}`);
 }
 
 main()

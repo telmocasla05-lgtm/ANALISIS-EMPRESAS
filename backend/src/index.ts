@@ -1,4 +1,9 @@
-// Punto de entrada de la API (FASE A pendiente).
-// Aquí irán: modelo de datos multi-tenant (empresas, roles, empleados,
-// sesiones, registros), auth por PIN y motor de categorización por reglas.
-console.log('Digital Power — backend: esqueleto inicial, sin lógica todavía.');
+import 'dotenv/config';
+import { createApp } from './app.js';
+
+const port = Number(process.env['PORT'] ?? 3001);
+const app = createApp();
+
+app.listen(port, () => {
+  console.log(`Digital Power — backend escuchando en http://localhost:${port}`);
+});
