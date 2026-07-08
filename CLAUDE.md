@@ -69,16 +69,22 @@ npm run build            # compila todos los paquetes
 npm run typecheck        # typecheck de todos los paquetes
 ```
 
-Base de datos (desde `backend/`, o con `--workspace @digital-power/backend`):
+Base de datos y tests (desde `backend/`, o con `--workspace @digital-power/backend`):
 
 ```bash
 npm run db:migrate       # crea/aplica migraciones Prisma (desarrollo)
 npm run db:seed          # seed de la Clínica Demo (idempotente)
 npm run db:studio        # explorador visual de la BD
-npx tsx scripts/verify-seed.ts   # comprobación del seed (conteos, PINs, CHECKs)
+npm test                 # tests de integración (vitest + supertest); el pretest
+                         #   crea la BD digital_power_test y aplica migraciones
+npx tsx scripts/verify-seed.ts       # comprobación del seed (conteos, PINs, CHECKs)
+npx tsx scripts/simulate-session.ts  # simula una sesión de 2 h (registro cada 5 s)
+                                     #   y verifica que el resumen por categoría cuadra
 ```
 
-**BD local:** este Mac ya tiene PostgreSQL 16 de Homebrew (prefijo `~/homebrew`, no está en el PATH estándar) corriendo como servicio en el puerto 5432; el proyecto usa la base `digital_power` con el usuario del sistema sin contraseña (`postgresql://cas@localhost:5432/digital_power` en `backend/.env`). El `psql` está en `~/homebrew/opt/postgresql@16/bin/psql`. En producción será Railway.
+Tras cambiar `prisma/schema.prisma` o hacer pull con migraciones nuevas: `npx prisma generate` (el cliente generado en `src/generated/prisma` no se regenera solo) y `npm run db:migrate`.
+
+**BD local:** este Mac usa **Postgres.app v18** (`/Applications/Postgres.app`, binarios en `/Applications/Postgres.app/Contents/Versions/18/bin`, no están en el PATH) escuchando en el puerto 5432. El proyecto usa la base `digital_power` (desarrollo) y `digital_power_test` (tests) con el usuario del sistema sin contraseña (`postgresql://pellotellechea@localhost:5432/digital_power` en `backend/.env`). En producción será Railway.
 
 ## Variables de entorno
 
@@ -89,8 +95,29 @@ Copiar `.env.example` a `.env` en la raíz y rellenar:
 - `JWT_SECRET` — secreto para firmar los tokens de sesión.
 - `ANTHROPIC_API_KEY` — clave de la API de Claude para la generación de borradores de informe.
 
+## API del backend (Fase A)
+
+Todas las rutas cuelgan de `/api`. Dos tipos de token JWT discriminados por `typ` (un token de empleado nunca vale como admin ni viceversa):
+
+**Apps de fichaje (escritorio/tablet)** — token de empleado (16 h) emitido por login PIN:
+
+- `GET /empresas/:slug/empleados` — lista pública para la pantalla de fichaje (id, nombre, avatar).
+- `POST /auth/pin` — login con `employeeId` + PIN de 4 dígitos. 5 fallos seguidos → bloqueo de 5 min (429). Mensajes de error genéricos.
+- `POST /sesiones/on` · `POST /sesiones/:id/off` — abre/cierra turno (una sesión abierta por empleado).
+- `POST /sesiones/:id/registros` — ingesta por lotes de registros de tracking; el backend los categoriza al insertar (reglas de empresa → reglas de sector → sin categorizar; `isIdle` no se categoriza).
+
+**Panel admin** — token de admin (12 h), roles `SUPERADMIN` (Digital Power, ve todo) y `CLIENTE` (solo su empresa; acceso cruzado → 403):
+
+- `POST /admin/auth/login` — email + contraseña.
+- `GET /admin/empresas/:id/resumen?semana=` — horas y coste estimado agregados por categoría y por empleado (semana natural UTC; duración estimada por hueco entre lecturas con tope de 10 s, ver `services/resumen.ts`).
+- `GET|POST|PUT|DELETE /admin/empresas/:companyId/empleados` — CRUD de empleados (baja lógica; el PIN se recibe en alta/edición pero **nunca se devuelve**).
+- `GET|POST|PUT|DELETE /admin/empresas/:companyId/roles` — CRUD de roles.
+- `GET|POST|PUT|DELETE /admin/empresas/:companyId/reglas` — reglas de categorización propias de la empresa; las de sector se listan como solo lectura (`scope: "sector"`).
+
+Credenciales del seed (solo desarrollo): `superadmin@digitalpower.dev`/`digitalpower`, `admin@clinicademo.dev`/`clinicademo`; PINs de empleados 1234/2345/4567/3456.
+
 ## Estado actual
 
-- **Hecho (Fase A, parte 1):** esquema PostgreSQL multi-tenant con Prisma (`backend/prisma/schema.prisma`), migración inicial aplicada (con CHECK de doble ámbito sector/empresa en `categories` y `categorization_rules`) y seed de la "Clínica Demo" (3 roles, 4 empleados con PIN hasheado, plantilla de categorización clínica de 9 reglas, 3 plantillas de automatización).
-- **Pendiente de Fase A:** endpoints Express (login por PIN, ON/OFF de sesiones, ingesta de registros) y motor de categorización que consume `categorization_rules` (empresa → sector → fallback "Sin categorizar / revisar").
+- **Hecho (Fase A — completa, revisada el 2026-07-08):** esquema PostgreSQL multi-tenant con Prisma + migraciones (CHECK de doble ámbito sector/empresa; `admin_users`, `slug` de empresa y bloqueo por PIN), seed de la "Clínica Demo", API Express completa (ver sección anterior), motor de categorización desde BD, resumen semanal agregado y 16 tests de integración (aislamiento multi-tenant, flujo PIN→ON→registros→OFF, bloqueo por PIN, categorización). Revisión de cierre: tests en verde, aislamiento entre empresas comprobado en vivo (403/404), sin fugas de PIN en respuestas, y simulación de 2 h con agregación exacta (`scripts/simulate-session.ts`).
+- **Deuda técnica y decisiones pendientes:** ver [docs/PENDIENTE.md](docs/PENDIENTE.md).
 - Las fases B–E (desktop, tablet, admin, piloto) están definidas en la sección 12 de la especificación.
