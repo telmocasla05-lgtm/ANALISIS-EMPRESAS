@@ -3,6 +3,7 @@
 // vive aquí, nunca en el renderer.
 import { BrowserWindow, ipcMain } from 'electron';
 import type { IpcMainInvokeEvent, WebContents } from 'electron';
+import { ApiClient, ApiError, MAX_BATCH_SIZE } from '@digital-power/shared';
 import type { EmpleadoListItem } from '@digital-power/shared';
 import type {
   DeviceConfig,
@@ -16,7 +17,6 @@ import type {
   SessionEmployee,
   TrackerStatus,
 } from '../common/ipc-contract';
-import { ApiClient, ApiError } from './api-client';
 import { clampSampleInterval, readConfig, writeConfig } from './config-store';
 import { getPermissionsStatus, requestPermission } from './permissions';
 import type { ActivityDetector } from './tracking/activity-detector';
@@ -29,7 +29,7 @@ import {
 import { GetWindowsDetector } from './tracking/get-windows-detector';
 import { IdleWatcher } from './tracking/idle-watcher';
 import { MockActivityDetector } from './tracking/mock-detector';
-import { MAX_BATCH_SIZE, Tracker } from './tracking/tracker';
+import { Tracker } from './tracking/tracker';
 import { hideTrackingTray, setTrackingTrayPaused, showTrackingTray, updateTrackingTray } from './tray';
 
 interface AuthState {
