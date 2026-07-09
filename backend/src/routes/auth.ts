@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { PinLoginRequest, PinLoginResponse } from '@digital-power/shared';
 import { asyncHandler } from '../lib/async-handler.js';
 import { EMPLOYEE_SESSION_TTL_SECONDS, signEmployeeSession } from '../lib/jwt.js';
+import { prisma } from '../lib/prisma.js';
 import { authenticateWithPin } from '../services/pin-auth.js';
 
 export const authRouter = Router();
@@ -38,9 +39,16 @@ authRouter.post(
       employeeId: result.employee.id,
       companyId: result.employee.companyId,
     });
+    // El desktop necesita el umbral de inactividad de la empresa (§6) para
+    // saber cuándo avisar; se entrega con el login para ahorrar otra llamada.
+    const company = await prisma.company.findUniqueOrThrow({
+      where: { id: result.employee.companyId },
+      select: { inactivityMinutes: true },
+    });
     const response: PinLoginResponse = {
       token,
       expiresAt: new Date(Date.now() + EMPLOYEE_SESSION_TTL_SECONDS * 1000).toISOString(),
+      inactivityMinutes: company.inactivityMinutes,
       employee: result.employee,
     };
     res.json(response);

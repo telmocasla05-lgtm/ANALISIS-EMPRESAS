@@ -2,7 +2,13 @@
 // 'electron', por eso del contrato IPC se importan únicamente tipos.
 import { contextBridge, ipcRenderer } from 'electron';
 import type { IpcRendererEvent } from 'electron';
-import type { DeviceConfig, DpApi, TrackerStatus } from '../common/ipc-contract';
+import type {
+  DeviceConfig,
+  DpApi,
+  IdleEvent,
+  SesionClosedEvent,
+  TrackerStatus,
+} from '../common/ipc-contract';
 
 const dpApi: DpApi = {
   getConfig: () => ipcRenderer.invoke('config:get'),
@@ -19,6 +25,23 @@ const dpApi: DpApi = {
       ipcRenderer.removeListener('tracker:status', handler);
     };
   },
+  onSesionClosed: (listener) => {
+    const handler = (_event: IpcRendererEvent, event: SesionClosedEvent) => listener(event);
+    ipcRenderer.on('sesion:closed', handler);
+    return () => {
+      ipcRenderer.removeListener('sesion:closed', handler);
+    };
+  },
+  onIdleEvent: (listener) => {
+    const handler = (_event: IpcRendererEvent, event: IdleEvent) => listener(event);
+    ipcRenderer.on('idle:event', handler);
+    return () => {
+      ipcRenderer.removeListener('idle:event', handler);
+    };
+  },
+  idleConfirm: () => ipcRenderer.invoke('idle:confirm'),
+  getPermissions: () => ipcRenderer.invoke('permissions:status'),
+  requestPermission: (pane) => ipcRenderer.invoke('permissions:request', pane),
 };
 
 contextBridge.exposeInMainWorld('dpApi', dpApi);

@@ -1,0 +1,51 @@
+# Empaquetado de la app de escritorio (ver docs/BUILD.md).
+# Builds sin firmar por ahora: la firma (Apple Developer ID / certificado
+# Windows) queda pendiente para el piloto — ver docs/PENDIENTE.md.
+appId: dev.digitalpower.fichaje
+productName: Digital Power Fichaje
+# En el monorepo (npm workspaces) electron vive hoisted en la raíz y
+# electron-builder no puede resolver el rango ^33: se fija aquí. Mantener en
+# sintonía con la devDependency "electron" de package.json.
+electronVersion: 33.4.11
+directories:
+  output: release
+
+files:
+  - dist/**
+  - assets/**
+  - "!dist/**/*.map"
+
+# get-windows ejecuta un binario externo (macOS) / addon N-API (Windows):
+# no pueden correr dentro del asar. Los iconos de bandeja igual, por claridad.
+asarUnpack:
+  - node_modules/get-windows/**
+  - assets/**
+
+# get-windows trae binarios precompilados; su binding.gyp es solo para
+# Windows y un rebuild en Mac fallaría. No hay nada que recompilar.
+npmRebuild: false
+
+mac:
+  category: public.app-category.business
+  target:
+    - dmg
+    - zip
+  # Sin firma: los permisos TCC (Accesibilidad/Grabación) se re-piden si
+  # cambia el binario; para el piloto hay que firmar con Developer ID.
+  identity: null
+
+# Los PCs de los clientes son x64: se fija el arch (si no, en un Mac arm64
+# saldría un build Windows-arm64 inservible). El target es zip "portable"
+# porque el instalador NSIS necesita un makensis que corra en la máquina de
+# build (en Mac arm64: Rosetta o makensis nativo — ver docs/BUILD.md); para
+# generar el instalador: npx electron-builder --win nsis --x64
+win:
+  target:
+    - target: zip
+      arch:
+        - x64
+
+nsis:
+  oneClick: true
+  perMachine: false
+  deleteAppDataOnUninstall: false

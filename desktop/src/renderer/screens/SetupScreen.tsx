@@ -6,11 +6,13 @@ interface Props {
 }
 
 const DEFAULT_API_BASE_URL = 'http://localhost:3001';
+const DEFAULT_SAMPLE_INTERVAL = '5';
 
 // Configuración inicial del dispositivo: se hace una vez por equipo.
 export default function SetupScreen({ onSaved }: Props) {
   const [companySlug, setCompanySlug] = useState('');
   const [apiBaseUrl, setApiBaseUrl] = useState(DEFAULT_API_BASE_URL);
+  const [sampleInterval, setSampleInterval] = useState(DEFAULT_SAMPLE_INTERVAL);
   const [hadConfig, setHadConfig] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +22,7 @@ export default function SetupScreen({ onSaved }: Props) {
       if (result.ok && result.data) {
         setCompanySlug(result.data.companySlug);
         setApiBaseUrl(result.data.apiBaseUrl);
+        setSampleInterval(String(result.data.sampleIntervalSeconds));
         setHadConfig(true);
       }
     });
@@ -31,6 +34,7 @@ export default function SetupScreen({ onSaved }: Props) {
     const result = await window.dpApi.setConfig({
       apiBaseUrl: apiBaseUrl.trim(),
       companySlug: companySlug.trim(),
+      sampleIntervalSeconds: Number(sampleInterval),
     });
     setSaving(false);
     if (result.ok) {
@@ -40,7 +44,10 @@ export default function SetupScreen({ onSaved }: Props) {
     }
   };
 
-  const canSave = companySlug.trim() !== '' && apiBaseUrl.trim() !== '' && !saving;
+  const intervalOk = /^\d+$/.test(sampleInterval.trim())
+    ? Number(sampleInterval) >= 5 && Number(sampleInterval) <= 10
+    : false;
+  const canSave = companySlug.trim() !== '' && apiBaseUrl.trim() !== '' && intervalOk && !saving;
 
   return (
     <div className="screen screen-center">
@@ -70,6 +77,21 @@ export default function SetupScreen({ onSaved }: Props) {
             placeholder={DEFAULT_API_BASE_URL}
             disabled={saving}
           />
+        </label>
+        <label className="field">
+          <span>Intervalo de muestreo (segundos)</span>
+          <input
+            type="number"
+            min={5}
+            max={10}
+            step={1}
+            value={sampleInterval}
+            onChange={(event) => setSampleInterval(event.target.value)}
+            disabled={saving}
+          />
+          <span className="field-help">
+            Cada cuántos segundos se lee la ventana activa, entre 5 y 10.
+          </span>
         </label>
         {error && <p className="error-text">{error}</p>}
         <div className="setup-actions">

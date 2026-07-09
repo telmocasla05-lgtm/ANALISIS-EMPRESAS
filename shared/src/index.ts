@@ -22,6 +22,8 @@ export interface PinLoginRequest {
 export interface PinLoginResponse {
   token: string;
   expiresAt: string;
+  /** Umbral de aviso de inactividad de la empresa (§6), para el tracking pasivo. */
+  inactivityMinutes: number;
   employee: {
     id: string;
     name: string;

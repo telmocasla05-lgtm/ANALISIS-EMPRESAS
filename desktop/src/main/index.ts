@@ -1,6 +1,6 @@
-// Proceso principal de Electron: ventana de fichaje e IPC. El tracking pasivo
-// real (get-windows), la inactividad con aviso y el icono de bandeja llegarán
-// en iteraciones posteriores de la Fase B.
+// Proceso principal de Electron: ventana de fichaje, IPC, tracking pasivo real
+// (get-windows) e icono de bandeja mientras hay turno abierto. La inactividad
+// con aviso llegará en una iteración posterior de la Fase B.
 import path from 'node:path';
 import { app, BrowserWindow } from 'electron';
 import { registerIpcHandlers } from './ipc';

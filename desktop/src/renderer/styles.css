@@ -260,6 +260,88 @@ h1 {
   margin-top: 16px;
 }
 
+.field-help {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* ---- Permisos de macOS ---- */
+
+.perm-intro {
+  max-width: 560px;
+}
+
+.perm-card {
+  width: min(560px, 100%);
+  padding: 20px 24px;
+  margin: 8px 0;
+  text-align: left;
+}
+
+.perm-card-granted {
+  border-color: var(--on);
+}
+
+.perm-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.perm-title {
+  font-size: 19px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.perm-chip {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--notice-bg);
+  color: var(--notice-text);
+  white-space: nowrap;
+}
+
+.perm-chip-ok {
+  background: #dcfce7;
+  color: var(--on-dark);
+}
+
+.perm-description {
+  text-align: left;
+  margin: 10px 0;
+}
+
+.perm-open-button {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.perm-open-button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.perm-steps {
+  max-width: 560px;
+  text-align: left;
+  margin: 10px 0 0;
+  padding-left: 22px;
+}
+
+.perm-steps li {
+  margin: 4px 0;
+}
+
 /* ---- Selección de empleado ---- */
 
 .employee-grid {
@@ -411,4 +493,51 @@ h1 {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   margin: 10px 0 0;
+}
+
+/* ---- Inactividad (§6) ---- */
+
+.paused-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--notice-text);
+  font-weight: 600;
+  margin: 4px 0 0;
+}
+
+.paused-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #d97706;
+}
+
+.idle-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.idle-dialog {
+  width: min(440px, 90vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.idle-dialog h2 {
+  font-size: 26px;
+  margin: 0;
+}
+
+.idle-dialog p {
+  margin: 0 0 8px;
+  color: var(--muted);
 }

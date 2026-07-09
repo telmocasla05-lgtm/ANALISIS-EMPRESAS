@@ -34,4 +34,10 @@ set -a
 source .env.test
 set +a
 
+# La URL del .env.test es la de una máquina concreta: TEST_DATABASE_URL la
+# sobreescribe en otras máquinas/CI (mismo mecanismo que vitest.config.ts).
+if [ -n "${TEST_DATABASE_URL:-}" ]; then
+  export DATABASE_URL="$TEST_DATABASE_URL"
+fi
+
 npx prisma migrate deploy

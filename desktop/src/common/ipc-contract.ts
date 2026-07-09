@@ -7,6 +7,18 @@ import type { EmpleadoListItem, PinLoginResponse } from '@digital-power/shared';
 export interface DeviceConfig {
   apiBaseUrl: string;
   companySlug: string;
+  /** Cada cuántos segundos se lee la ventana activa (5–10; el main lo acota). */
+  sampleIntervalSeconds: number;
+}
+
+/** Permisos del sistema necesarios para el tracking (solo aplican en macOS). */
+export interface PermissionsStatus {
+  /** false en Windows/Linux: no hay nada que conceder. */
+  required: boolean;
+  /** Accesibilidad: necesario para obtener el dominio del navegador. */
+  accessibility: boolean;
+  /** Grabación de pantalla: macOS lo exige para leer el título de la ventana. */
+  screenRecording: boolean;
 }
 
 export type IpcErrorCode =
@@ -51,6 +63,22 @@ export interface TrackerStatus {
   lastError?: string;
 }
 
+/** Cierre de turno iniciado fuera del renderer (evento `sesion:closed`, p. ej.
+ *  el OFF rápido del menú de la bandeja). Con error, la sesión sigue abierta. */
+export interface SesionClosedEvent {
+  endedAt?: string;
+  warning?: string;
+  error?: string;
+}
+
+/** Ciclo de inactividad (§6), del main al renderer (evento `idle:event`):
+ *  warning → dismissed (respondió/actividad) o paused → resumed. */
+export type IdleEvent =
+  | { type: 'warning'; countdownSeconds: number }
+  | { type: 'dismissed' }
+  | { type: 'paused' }
+  | { type: 'resumed' };
+
 /** API expuesta al renderer por el preload como `window.dpApi`. */
 export interface DpApi {
   getConfig(): Promise<IpcResult<DeviceConfig | null>>;
@@ -63,4 +91,14 @@ export interface DpApi {
   sesionCancel(): Promise<IpcResult<null>>;
   /** Se suscribe al estado del tracker; devuelve la función para desuscribirse. */
   onTrackerStatus(listener: (status: TrackerStatus) => void): () => void;
+  /** Se suscribe a cierres de turno iniciados fuera del renderer (bandeja). */
+  onSesionClosed(listener: (event: SesionClosedEvent) => void): () => void;
+  /** Se suscribe al ciclo de inactividad (aviso/pausa/reanudación). */
+  onIdleEvent(listener: (event: IdleEvent) => void): () => void;
+  /** Respuesta al aviso de inactividad ("Sigo trabajando"). */
+  idleConfirm(): Promise<IpcResult<null>>;
+  /** Estado de los permisos de macOS (en Windows/Linux, required: false). */
+  getPermissions(): Promise<IpcResult<PermissionsStatus>>;
+  /** Registra la app en la lista del permiso y abre Ajustes del Sistema. */
+  requestPermission(pane: 'accessibility' | 'screenRecording'): Promise<IpcResult<null>>;
 }

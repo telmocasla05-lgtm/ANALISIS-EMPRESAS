@@ -7,12 +7,14 @@
   "scripts": {
     "dev": "tsc -p tsconfig.json && concurrently -k -s first -n vite,electron \"vite\" \"wait-on tcp:5174 && cross-env ELECTRON_RENDERER_URL=http://localhost:5174 electron .\"",
     "build": "tsc -p tsconfig.json && vite build",
-    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.renderer.json"
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.renderer.json",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && node scripts/fetch-win-binding.cjs && electron-builder --win"
   },
   "dependencies": {
     "@digital-power/shared": "*",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@mapbox/node-pre-gyp": "^1.0.11",
+    "get-windows": "^9.3.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -22,6 +24,9 @@
     "concurrently": "^9.1.0",
     "cross-env": "^7.0.3",
     "electron": "^33.2.1",
+    "electron-builder": "^26.15.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
     "wait-on": "^8.0.1"

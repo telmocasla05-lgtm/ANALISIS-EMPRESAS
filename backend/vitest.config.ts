@@ -4,6 +4,12 @@ import { defineConfig } from 'vitest/config';
 
 const parsed = dotenv.config({ path: path.resolve(__dirname, '.env.test') }).parsed ?? {};
 
+// El .env.test commiteado lleva la URL de una máquina concreta; en otra máquina
+// (u otro CI) se sobreescribe con TEST_DATABASE_URL sin tocar el archivo.
+if (process.env.TEST_DATABASE_URL) {
+  parsed['DATABASE_URL'] = process.env.TEST_DATABASE_URL;
+}
+
 export default defineConfig({
   test: {
     environment: 'node',

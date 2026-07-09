@@ -19,12 +19,37 @@ las fases B–D, pero conviene resolver los puntos de seguridad antes del piloto
 - **Ingesta de registros sin idempotencia.** Si la app de escritorio reenvía un lote
   tras un timeout (reintento), los registros se duplican y el resumen infla las horas.
   Opciones: índice único `(session_id, timestamp)` con `skipDuplicates`, o un id de
-  lote idempotente. Decidir al construir el cliente desktop (Fase B).
+  lote idempotente. **Más urgente desde 2026-07-09:** el desktop ya reintenta lotes
+  (cada 60 s, troceados a 500) y además recupera pendientes desde disco en el
+  siguiente turno; un timeout con inserción exitosa duplica de verdad.
 - **Timestamps de registros sin validar contra la sesión.** Se acepta cualquier
   timestamp ISO (pasado o futuro, fuera de la ventana ON→OFF). Valorar acotarlos a
-  `[startedAt, endedAt]` de la sesión.
+  `[startedAt, endedAt]` de la sesión. Ojo: la recuperación de pendientes del desktop
+  sube registros legítimos a sesiones **ya cerradas** (con timestamps dentro de la
+  ventana original); si se acota, hacerlo por timestamp y no rechazando sesiones
+  cerradas.
 
 ## Funcional
+
+- **Sin dominio del navegador en Windows.** `get-windows` solo expone la URL de la
+  pestaña activa en macOS (vía Apple Events a navegadores conocidos); en Windows no
+  hay URL, así que `domain` queda vacío y categorizan las reglas APP/TITLE. Si algún
+  cliente Windows necesita dominio de verdad: valorar `@miniben90/x-win` (Rust,
+  saca URL también en Windows), UI Automation propia, o una extensión de navegador.
+- **Builds sin firmar (2026-07-09: empaquetado hecho, firma pendiente).** macOS
+  asocia los permisos TCC (Accesibilidad, Grabación de pantalla) a la firma de la
+  app: sin Developer ID + notarización, macOS re-pide los permisos al actualizar
+  y Gatekeeper avisa al abrir. En Windows, sin certificado Authenticode salta
+  SmartScreen. Ver docs/BUILD.md. macOS 15+ re-pide confirmación periódica de
+  Grabación de pantalla: la pantalla guiada reaparece sola tras el PIN cuando el
+  permiso cae.
+- **Instalador NSIS de Windows no generado en Mac arm64.** El target por defecto
+  es ZIP portable (funciona en cualquier máquina de build); el `Setup.exe` exige
+  un `makensis` ejecutable (Rosetta 2 en Apple Silicon, makensis nativo, o
+  compilar en Windows). Decidir para el piloto si basta el ZIP portable.
+- **Icono propio de la app.** Los builds llevan el icono por defecto de Electron;
+  faltan `.icns` (Mac) y `.ico` (Windows) con la marca de Digital Power.
+- **Aviso LOPDGDD de primer uso** (§7): pendiente en la app de escritorio.
 
 - **Sesiones huérfanas.** Si el equipo se apaga sin pulsar OFF, la sesión queda abierta
   indefinidamente y el siguiente ON devuelve 409. Falta política de cierre: job que
@@ -53,14 +78,15 @@ las fases B–D, pero conviene resolver los puntos de seguridad antes del piloto
 - **`shared` requiere build manual.** El backend importa `@digital-power/shared` desde
   `dist/`, que no existe hasta ejecutar su build (pasó en esta revisión: typecheck roto
   tras clonar). Valorar compilar `shared` en `postinstall` o pasar a project references.
-- **`.env.test` lleva el usuario de BD de esta máquina** (`pellotellechea`). Para CI o
-  para otro desarrollador hay que parametrizarlo (p. ej. `TEST_DATABASE_URL` con
-  fallback).
+- ~~**`.env.test` lleva el usuario de BD de una máquina concreta.**~~ Resuelto el
+  2026-07-09: `TEST_DATABASE_URL` sobreescribe la URL del `.env.test` (en
+  `vitest.config.ts` y `scripts/test-db-setup.sh`) sin tocar el archivo.
 - **Sin logging estructurado.** El error handler hace `console.error` y responde 500
   genérico; en Railway convendrá logging estructurado y algún identificador de request.
 - **Sin paginación en los listados admin** (empleados, reglas). Aceptable para el
   tamaño de cliente actual; revisar si algún cliente supera el centenar de filas.
 - **Constante de muestreo duplicada.** `SAMPLE_CAP_SECONDS = 10` vive en
-  `services/resumen.ts` y `scripts/simulate-session.ts` la replica. Cuando la Fase B
-  fije el intervalo real de muestreo del desktop (5–10 s), unificar en `shared/` o en
-  configuración por empresa.
+  `services/resumen.ts` y `scripts/simulate-session.ts` la replica; desde 2026-07-09
+  el desktop acota su intervalo configurable a 5–10 s por la misma razón
+  (`clampSampleInterval` en `desktop/src/main/config-store.ts`). Tres sitios ya:
+  unificar en `shared/` o en configuración por empresa.

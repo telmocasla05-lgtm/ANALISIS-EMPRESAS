@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import type { SessionEmployee, TrackerStatus } from '../../common/ipc-contract';
 import BigButton from '../components/BigButton';
 
+/** Estado local del ciclo de inactividad (§6). */
+type IdleUiState = { name: 'none' } | { name: 'warning'; secondsLeft: number } | { name: 'paused' };
+
 interface Props {
   employee: SessionEmployee;
   /** Vuelta a la selección de empleado, con aviso opcional a mostrar allí. */
@@ -18,8 +21,48 @@ export default function SessionScreen({ employee, onFinished }: Props) {
   const [phase, setPhase] = useState<Phase>({ name: 'idle' });
   const [error, setError] = useState<string | null>(null);
   const [trackerStatus, setTrackerStatus] = useState<TrackerStatus | null>(null);
+  const [idleState, setIdleState] = useState<IdleUiState>({ name: 'none' });
 
   useEffect(() => window.dpApi.onTrackerStatus(setTrackerStatus), []);
+
+  useEffect(
+    () =>
+      window.dpApi.onIdleEvent((event) => {
+        if (event.type === 'warning') setIdleState({ name: 'warning', secondsLeft: event.countdownSeconds });
+        else if (event.type === 'paused') setIdleState({ name: 'paused' });
+        else setIdleState({ name: 'none' }); // dismissed | resumed
+      }),
+    [],
+  );
+
+  // Cuenta atrás visual del aviso (la de verdad la lleva el main)
+  useEffect(() => {
+    if (idleState.name !== 'warning') return;
+    const timer = setInterval(
+      () =>
+        setIdleState((current) =>
+          current.name === 'warning'
+            ? { name: 'warning', secondsLeft: Math.max(0, current.secondsLeft - 1) }
+            : current,
+        ),
+      1000,
+    );
+    return () => clearInterval(timer);
+  }, [idleState.name]);
+
+  // Cierre iniciado desde el menú de la bandeja: con endedAt el turno quedó
+  // cerrado; con error la sesión sigue abierta y se muestra el motivo.
+  useEffect(
+    () =>
+      window.dpApi.onSesionClosed((event) => {
+        if (event.endedAt) {
+          onFinished(event.warning);
+        } else if (event.error) {
+          setError(event.error);
+        }
+      }),
+    [onFinished],
+  );
 
   const handleOn = async () => {
     setPhase({ name: 'starting' });
@@ -84,11 +127,31 @@ export default function SessionScreen({ employee, onFinished }: Props) {
 
   return (
     <div className="screen screen-center">
+      {idleState.name === 'warning' && (
+        <div className="idle-overlay" role="alertdialog" aria-label="Aviso de inactividad">
+          <div className="card idle-dialog">
+            <h2>¿Sigues ahí?</h2>
+            <p>
+              No se detecta actividad. El tracking se pausará en{' '}
+              <strong>{idleState.secondsLeft} s</strong> si no respondes; el tiempo en pausa no se
+              cuenta en ninguna categoría.
+            </p>
+            <BigButton onClick={() => void window.dpApi.idleConfirm()}>Sigo trabajando</BigButton>
+          </div>
+        </div>
+      )}
       <h1>{employee.name}</h1>
-      <p className="tracking-indicator">
-        <span className="tracking-dot" aria-hidden="true" />
-        Registrando actividad…
-      </p>
+      {idleState.name === 'paused' ? (
+        <p className="paused-indicator">
+          <span className="paused-dot" aria-hidden="true" />
+          En pausa por inactividad — mueve el ratón para reanudar
+        </p>
+      ) : (
+        <p className="tracking-indicator">
+          <span className="tracking-dot" aria-hidden="true" />
+          Registrando actividad…
+        </p>
+      )}
       <ElapsedClock startedAt={session.startedAt} />
       {session.resumed && (
         <p className="notice">Se ha reanudado una sesión que quedó abierta.</p>
@@ -101,8 +164,13 @@ export default function SessionScreen({ employee, onFinished }: Props) {
         </span>
       </BigButton>
       <p className="muted small">
-        Detección simulada (demo)
-        {trackerStatus && ` · ${trackerStatus.buffered} registros pendientes de subir`}
+        Se registra la aplicación activa, el título de la ventana y el dominio — nunca el
+        contenido ni el teclado.
+      </p>
+      <p className="muted small">
+        Puedes terminar el turno también desde el icono de la bandeja del sistema.
+        {trackerStatus && trackerStatus.buffered > 0 &&
+          ` · ${trackerStatus.buffered} registros pendientes de subir`}
         {trackerStatus?.lastError && ' · sin conexión, se reintentará'}
       </p>
     </div>
