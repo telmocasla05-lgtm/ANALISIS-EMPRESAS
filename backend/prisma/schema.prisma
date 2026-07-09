@@ -41,6 +41,7 @@ model Company {
   sector             Sector
   avgHourlyCostCents Int      @default(2000) @map("avg_hourly_cost_cents") // coste/hora medio en céntimos (§10)
   inactivityMinutes  Int      @default(10) @map("inactivity_minutes") // umbral de aviso de inactividad (§6)
+  sampleIntervalSeconds Int   @default(5) @map("sample_interval_seconds") // frecuencia de muestreo del tracking, 5-10 s (§8)
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 

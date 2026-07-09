@@ -41,14 +41,16 @@ authRouter.post(
     });
     // El desktop necesita el umbral de inactividad de la empresa (§6) para
     // saber cuándo avisar; se entrega con el login para ahorrar otra llamada.
+    // La frecuencia de muestreo (§8) viaja igual, configurable desde el panel.
     const company = await prisma.company.findUniqueOrThrow({
       where: { id: result.employee.companyId },
-      select: { inactivityMinutes: true },
+      select: { inactivityMinutes: true, sampleIntervalSeconds: true },
     });
     const response: PinLoginResponse = {
       token,
       expiresAt: new Date(Date.now() + EMPLOYEE_SESSION_TTL_SECONDS * 1000).toISOString(),
       inactivityMinutes: company.inactivityMinutes,
+      sampleIntervalSeconds: company.sampleIntervalSeconds,
       employee: result.employee,
     };
     res.json(response);

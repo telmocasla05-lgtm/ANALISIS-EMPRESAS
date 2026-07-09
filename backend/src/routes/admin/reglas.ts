@@ -37,15 +37,24 @@ adminReglasRouter.get(
   })
 );
 
+// Campo del registro sobre el que matchea cada tipo de patrón (mismo mapeo que
+// fieldFor en services/categorization.ts, pero como columna Prisma).
+const RECORD_FIELD: Record<PatternType, 'app' | 'domain' | 'windowTitle'> = {
+  APP: 'app',
+  DOMAIN: 'domain',
+  TITLE: 'windowTitle',
+};
+
 adminReglasRouter.post(
   '/',
   asyncHandler(async (req, res) => {
     const companyId = req.params['companyId']!;
-    const { patternType, pattern, categoryId, priority } = req.body as Partial<{
+    const { patternType, pattern, categoryId, priority, recategorizar } = req.body as Partial<{
       patternType: PatternType;
       pattern: string;
       categoryId: string;
       priority: number;
+      recategorizar: boolean;
     }>;
     if (!patternType || !PATTERN_TYPES.includes(patternType) || typeof pattern !== 'string' || !pattern.trim() || typeof categoryId !== 'string') {
       res.status(400).json({ error: 'patternType, pattern y categoryId son obligatorios' });
@@ -64,7 +73,25 @@ adminReglasRouter.post(
     const rule = await prisma.categorizationRule.create({
       data: { companyId, patternType, pattern: pattern.trim(), categoryId, priority: priority ?? 100 },
     });
-    res.status(201).json(rule);
+
+    // Acción rápida del dashboard: aplicar la regla nueva a los registros que
+    // siguen sin categorizar (que no matchearon ninguna regla, así que no hay
+    // conflicto de prioridades) para que el histórico refleje el cambio.
+    let recategorizados = 0;
+    if (recategorizar === true) {
+      const result = await prisma.activityRecord.updateMany({
+        where: {
+          companyId,
+          categoryId: null,
+          isIdle: false,
+          [RECORD_FIELD[patternType]]: { contains: rule.pattern, mode: 'insensitive' },
+        },
+        data: { categoryId },
+      });
+      recategorizados = result.count;
+    }
+
+    res.status(201).json({ ...rule, recategorizados });
   })
 );
 

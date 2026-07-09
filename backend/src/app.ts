@@ -2,6 +2,7 @@ import cors from 'cors';
 import express, { type Express } from 'express';
 import { errorHandler } from './middleware/error-handler.js';
 import { adminAuthRouter } from './routes/admin/auth.js';
+import { adminCategoriasRouter } from './routes/admin/categorias.js';
 import { adminEmpleadosRouter } from './routes/admin/empleados.js';
 import { adminEmpresasRouter } from './routes/admin/empresas.js';
 import { adminReglasRouter } from './routes/admin/reglas.js';
@@ -27,6 +28,7 @@ export function createApp(): Express {
   app.use('/api/admin/empresas/:companyId/empleados', adminEmpleadosRouter);
   app.use('/api/admin/empresas/:companyId/roles', adminRolesRouter);
   app.use('/api/admin/empresas/:companyId/reglas', adminReglasRouter);
+  app.use('/api/admin/empresas/:companyId/categorias', adminCategoriasRouter);
   app.use('/api/admin/empresas', adminEmpresasRouter);
 
   app.use(errorHandler);

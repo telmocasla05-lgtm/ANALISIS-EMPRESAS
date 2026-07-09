@@ -24,6 +24,8 @@ export interface PinLoginResponse {
   expiresAt: string;
   /** Umbral de aviso de inactividad de la empresa (§6), para el tracking pasivo. */
   inactivityMinutes: number;
+  /** Frecuencia de muestreo del tracking configurada para la empresa (§8), 5-10 s. */
+  sampleIntervalSeconds: number;
   employee: {
     id: string;
     name: string;
@@ -99,8 +101,98 @@ export interface ResumenEmpleado {
   porCategoria: ResumenCategoria[];
 }
 
-export interface ResumenSemanal {
-  semana: { desde: string; hasta: string };
+export interface Resumen {
+  rango: { desde: string; hasta: string };
   porCategoria: ResumenCategoria[];
   porEmpleado: ResumenEmpleado[];
+}
+
+/** Punto de la serie de evolución semanal del dashboard (una semana natural UTC). */
+export interface EvolucionSemana {
+  semana: { desde: string; hasta: string };
+  horas: number;
+  costeEstimado: number;
+  porCategoria: ResumenCategoria[];
+}
+
+// ── Admin: empresas y ajustes ──────────────────────────────────────────
+
+export interface EmpresaAdminListItem {
+  id: string;
+  slug: string;
+  name: string;
+  sector: Sector;
+}
+
+export interface EmpresaAdminDetalle extends EmpresaAdminListItem {
+  avgHourlyCostCents: number;
+  inactivityMinutes: number;
+  sampleIntervalSeconds: number;
+}
+
+export interface AjustesEmpresaUpdate {
+  avgHourlyCostCents?: number;
+  inactivityMinutes?: number;
+  sampleIntervalSeconds?: number;
+}
+
+// ── Admin: gestión (empleados, roles, categorías, reglas) ─────────────
+
+export interface EmpleadoAdmin {
+  id: string;
+  name: string;
+  roleId: string;
+  roleName: string;
+  avatarUrl: string | null;
+  active: boolean;
+}
+
+export interface RolAdmin {
+  id: string;
+  name: string;
+}
+
+export type ReglaScope = 'sector' | 'empresa';
+
+export interface CategoriaAdmin {
+  id: string;
+  name: string;
+  scope: ReglaScope;
+}
+
+export interface ReglaAdmin {
+  id: string;
+  patternType: PatternType;
+  pattern: string;
+  priority: number;
+  active: boolean;
+  categoryId: string;
+  categoryName: string;
+  scope: ReglaScope;
+}
+
+// ── Admin: registros sin categorizar (dashboard) ──────────────────────
+
+/** Grupo de registros sin categorizar (misma app+dominio) para la tabla de revisión. */
+export interface SinCategorizarGrupo {
+  app: string;
+  domain: string | null;
+  /** Un título de ventana de ejemplo del grupo, para dar contexto al crear la regla. */
+  windowTitleEjemplo: string | null;
+  registros: number;
+  horas: number;
+  ultimaVez: string;
+}
+
+// ── Admin: sesiones (registro horario) ─────────────────────────────────
+
+export interface SesionAdmin {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  device: Device;
+  startedAt: string;
+  endedAt: string | null;
+  /** Duración en horas; null mientras la sesión sigue abierta. */
+  duracionHoras: number | null;
 }

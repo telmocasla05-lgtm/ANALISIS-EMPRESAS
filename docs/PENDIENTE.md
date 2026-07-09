@@ -62,12 +62,20 @@ las fases B–D, pero conviene resolver los puntos de seguridad antes del piloto
 - **Alta de empresas y admins solo por seed/BD.** No hay API para crear empresas ni
   usuarios admin: para dar de alta un cliente real hay que tocar la BD. Necesario un
   CRUD de empresas para SUPERADMIN antes de operar con más de un cliente.
-- **Zona horaria del resumen.** La semana del resumen es la natural en UTC. Para
-  clientes en España, decidir si se calcula en `Europe/Madrid` (previsiblemente sí) y
-  si la TZ es configurable por empresa.
+- **Zona horaria del resumen.** La semana y los rangos `desde/hasta` del resumen son
+  días naturales en UTC (el panel también los manda así). Para clientes en España,
+  decidir si se calcula en `Europe/Madrid` (previsiblemente sí) y si la TZ es
+  configurable por empresa. Ojo: el panel muestra las horas de las sesiones en la TZ
+  local del navegador, así que una sesión cerca de medianoche puede caer en el día
+  UTC anterior al filtrar.
 - **Informes con la API de Claude y plantillas de automatización.** Las tablas existen
-  (`automation_templates`) pero no hay endpoints ni generación de borradores todavía
-  (previsto para la fase de admin/informes).
+  (`automation_templates`) pero no hay endpoints ni generación de borradores todavía.
+  Es lo único de la Fase D (§10) que queda tras el panel admin del 2026-07-09.
+- **La frecuencia de muestreo por empresa aún no la consume el desktop.** Desde el
+  2026-07-09 existe `companies.sample_interval_seconds` (editable en el panel, 5–10 s)
+  y el login PIN la devuelve (`sampleIntervalSeconds`), pero la app de escritorio sigue
+  usando el intervalo de su `config.json` local. Decidir la precedencia (¿el valor del
+  servidor pisa el del dispositivo?) y aplicarla en el main del desktop.
 
 ## Infraestructura y DX
 
@@ -83,10 +91,12 @@ las fases B–D, pero conviene resolver los puntos de seguridad antes del piloto
   `vitest.config.ts` y `scripts/test-db-setup.sh`) sin tocar el archivo.
 - **Sin logging estructurado.** El error handler hace `console.error` y responde 500
   genérico; en Railway convendrá logging estructurado y algún identificador de request.
-- **Sin paginación en los listados admin** (empleados, reglas). Aceptable para el
-  tamaño de cliente actual; revisar si algún cliente supera el centenar de filas.
+- **Sin paginación en los listados admin** (empleados, reglas, sesiones — estas
+  últimas con tope de 1000 filas por respuesta). Aceptable para el tamaño de cliente
+  actual; revisar si algún cliente supera el centenar de filas o el tope de sesiones
+  en un rango largo.
 - **Constante de muestreo duplicada.** `SAMPLE_CAP_SECONDS = 10` vive en
   `services/resumen.ts` y `scripts/simulate-session.ts` la replica; desde 2026-07-09
   el desktop acota su intervalo configurable a 5–10 s por la misma razón
-  (`clampSampleInterval` en `desktop/src/main/config-store.ts`). Tres sitios ya:
-  unificar en `shared/` o en configuración por empresa.
+  (`clampSampleInterval` en `desktop/src/main/config-store.ts`) y el panel valida
+  los ajustes de empresa con el mismo rango 5–10. Unificar la constante en `shared/`.
