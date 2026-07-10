@@ -44,6 +44,7 @@ export function Layout() {
           </NavLink>
           <NavLink to="/gestion">Gestión</NavLink>
           <NavLink to="/sesiones">Sesiones</NavLink>
+          <NavLink to="/informes">Informes</NavLink>
         </nav>
       </header>
       <main className="page">

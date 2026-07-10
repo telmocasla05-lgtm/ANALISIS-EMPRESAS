@@ -5,6 +5,7 @@ import { adminAuthRouter } from './routes/admin/auth.js';
 import { adminCategoriasRouter } from './routes/admin/categorias.js';
 import { adminEmpleadosRouter } from './routes/admin/empleados.js';
 import { adminEmpresasRouter } from './routes/admin/empresas.js';
+import { adminInformesRouter } from './routes/admin/informes.js';
 import { adminReglasRouter } from './routes/admin/reglas.js';
 import { adminRolesRouter } from './routes/admin/roles.js';
 import { authRouter } from './routes/auth.js';
@@ -29,6 +30,7 @@ export function createApp(): Express {
   app.use('/api/admin/empresas/:companyId/roles', adminRolesRouter);
   app.use('/api/admin/empresas/:companyId/reglas', adminReglasRouter);
   app.use('/api/admin/empresas/:companyId/categorias', adminCategoriasRouter);
+  app.use('/api/admin/empresas/:companyId/informes', adminInformesRouter);
   app.use('/api/admin/empresas', adminEmpresasRouter);
 
   app.use(errorHandler);

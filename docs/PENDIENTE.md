@@ -68,9 +68,11 @@ las fases B–D, pero conviene resolver los puntos de seguridad antes del piloto
   configurable por empresa. Ojo: el panel muestra las horas de las sesiones en la TZ
   local del navegador, así que una sesión cerca de medianoche puede caer en el día
   UTC anterior al filtrar.
-- **Informes con la API de Claude y plantillas de automatización.** Las tablas existen
-  (`automation_templates`) pero no hay endpoints ni generación de borradores todavía.
-  Es lo único de la Fase D (§10) que queda tras el panel admin del 2026-07-09.
+- **Validar la generación de informes contra la API real de Claude.** El generador
+  (implementado el 2026-07-10) está probado con la API mockeada y la agregación
+  verificada contra datos reales, pero falta un informe generado de verdad: requiere
+  una `ANTHROPIC_API_KEY` con saldo en el `.env` del backend de la máquina donde se
+  pruebe (el flujo completo de estados y el editor del panel ya funcionan sin ella).
 - **La frecuencia de muestreo por empresa aún no la consume el desktop.** Desde el
   2026-07-09 existe `companies.sample_interval_seconds` (editable en el panel, 5–10 s)
   y el login PIN la devuelve (`sampleIntervalSeconds`), pero la app de escritorio sigue

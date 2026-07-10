@@ -184,6 +184,58 @@ export interface SinCategorizarGrupo {
   ultimaVez: string;
 }
 
+// ── Admin: informes (§10) ─────────────────────────────────────────────
+
+export type InformeEstado = 'BORRADOR' | 'REVISADO' | 'ENVIADO';
+
+export interface InformeListItem {
+  id: string;
+  status: InformeEstado;
+  title: string;
+  periodo: { desde: string; hasta: string };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InformeDetalle extends InformeListItem {
+  /** Contenido en markdown, editable por Digital Power mientras no esté enviado. */
+  content: string;
+  /** Modelo de Claude que redactó el borrador original. */
+  model: string;
+}
+
+export interface InformeCreateRequest {
+  desde: string; // YYYY-MM-DD, inclusive
+  hasta: string; // YYYY-MM-DD, inclusive
+}
+
+export interface InformeUpdateRequest {
+  content?: string;
+  status?: InformeEstado;
+}
+
+/** Plantilla de automatización del sector (candidatas al top 3 del informe). */
+export interface PlantillaAutomatizacion {
+  id: string;
+  title: string;
+  description: string;
+}
+
+/**
+ * Datos agregados del periodo que el backend prepara para redactar el informe:
+ * horas y coste por categoría, por empleado y por semana, más las plantillas
+ * de automatización del sector de la empresa.
+ */
+export interface InformeDatos {
+  empresa: { nombre: string; sector: Sector; costeHoraEuros: number };
+  periodo: { desde: string; hasta: string };
+  totales: { horas: number; costeEstimado: number };
+  porCategoria: ResumenCategoria[];
+  porEmpleado: ResumenEmpleado[];
+  porSemana: EvolucionSemana[];
+  plantillasAutomatizacion: PlantillaAutomatizacion[];
+}
+
 // ── Admin: sesiones (registro horario) ─────────────────────────────────
 
 export interface SesionAdmin {

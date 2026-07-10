@@ -52,6 +52,7 @@ model Company {
   categories Category[]
   rules      CategorizationRule[]
   adminUsers AdminUser[]
+  reports    Report[]
 
   @@map("companies")
 }
@@ -178,6 +179,33 @@ model CategorizationRule {
   @@index([sector])
   @@index([companyId])
   @@map("categorization_rules")
+}
+
+enum ReportStatus {
+  BORRADOR // generado con la API de Claude, pendiente de revisión
+  REVISADO // revisado/editado por Digital Power
+  ENVIADO // marcado manualmente como enviado al cliente (nunca se envía automáticamente)
+}
+
+// Informe de actividad (§10): borrador redactado con la API de Claude sobre los
+// datos agregados del periodo, que Digital Power revisa y edita antes de enviar.
+model Report {
+  id           String       @id @default(uuid())
+  companyId    String       @map("company_id")
+  status       ReportStatus @default(BORRADOR)
+  periodStart  DateTime     @map("period_start") // inicio del periodo analizado (UTC, inclusive)
+  periodEnd    DateTime     @map("period_end") // fin exclusivo del periodo analizado (UTC)
+  title        String
+  content      String // markdown editable por Digital Power
+  draftContent String       @map("draft_content") // borrador original de Claude, se conserva sin editar
+  model        String // modelo de Claude que redactó el borrador
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+  @@map("reports")
 }
 
 // Plantilla de automatización por sector, para el top 3 del informe (§10)

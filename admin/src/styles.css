@@ -507,6 +507,84 @@ th.num {
   font-size: 20px;
 }
 
+/* ── Informes (§10) ────────────────────────────────────────────────────── */
+
+.chip.borrador {
+  color: #8a5a00;
+  border-color: rgba(184, 122, 8, 0.35);
+  background: rgba(222, 158, 36, 0.1);
+}
+
+.informe-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.informe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.informe-editor {
+  width: 100%;
+  min-height: 460px;
+  resize: vertical;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  padding: 14px;
+}
+
+.informe-editor:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.informe-preview {
+  max-width: 760px;
+  line-height: 1.6;
+}
+
+.informe-preview h2 {
+  font-size: 19px;
+  margin: 22px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.informe-preview h3 {
+  font-size: 16px;
+  margin: 16px 0 6px;
+}
+
+.informe-preview h4 {
+  font-size: 15px;
+  margin: 12px 0 4px;
+}
+
+.informe-preview p {
+  margin: 0 0 10px;
+}
+
+.informe-preview ul,
+.informe-preview ol {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+
+.informe-preview li {
+  margin-bottom: 4px;
+}
+
 /* ── Móvil ─────────────────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {

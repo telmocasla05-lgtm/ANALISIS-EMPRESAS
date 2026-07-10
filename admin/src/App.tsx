@@ -8,6 +8,8 @@ import { CompanyProvider } from './company/CompanyProvider';
 import { Layout } from './components/Layout';
 import { DashboardPage } from './pages/DashboardPage';
 import { GestionPage } from './pages/GestionPage';
+import { InformeDetallePage } from './pages/InformeDetallePage';
+import { InformesPage } from './pages/InformesPage';
 import { LoginPage } from './pages/LoginPage';
 import { SesionesPage } from './pages/SesionesPage';
 
@@ -33,6 +35,8 @@ export default function App() {
         <Route index element={<DashboardPage />} />
         <Route path="/gestion" element={<GestionPage />} />
         <Route path="/sesiones" element={<SesionesPage />} />
+        <Route path="/informes" element={<InformesPage />} />
+        <Route path="/informes/:informeId" element={<InformeDetallePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
