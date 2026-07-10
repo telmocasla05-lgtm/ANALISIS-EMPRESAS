@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ApiClient, ApiError } from '@digital-power/shared';
-import { saveConfig } from '../lib/config';
+import { DEFAULT_SERVER_URL, saveConfig } from '../lib/config';
 import type { TabletConfig } from '../lib/config';
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 // falta, URL del servidor. Se valida contra la API antes de guardar.
 export default function SetupScreen({ initial, onDone }: Props) {
   const [slug, setSlug] = useState(initial?.slug ?? '');
-  const [serverUrl, setServerUrl] = useState(initial?.serverUrl ?? '');
+  const [serverUrl, setServerUrl] = useState(initial?.serverUrl ?? DEFAULT_SERVER_URL);
   const [checking, setChecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

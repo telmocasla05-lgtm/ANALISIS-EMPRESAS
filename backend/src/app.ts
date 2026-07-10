@@ -1,6 +1,8 @@
 import cors from 'cors';
 import express, { type Express } from 'express';
+import { prisma } from './lib/prisma.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { requestLog } from './middleware/request-log.js';
 import { adminAuthRouter } from './routes/admin/auth.js';
 import { adminCategoriasRouter } from './routes/admin/categorias.js';
 import { adminEmpleadosRouter } from './routes/admin/empleados.js';
@@ -13,12 +15,43 @@ import { categoriasRouter } from './routes/categorias.js';
 import { empresasRouter } from './routes/empresas.js';
 import { sesionesRouter } from './routes/sesiones.js';
 
+// CORS: con CORS_ORIGINS definido (lista separada por comas) solo se aceptan
+// esos orígenes — en producción, los dominios de Vercel del panel y la tablet.
+// Sin definir se permite cualquier origen (desarrollo local). Las peticiones
+// sin cabecera Origin (app Electron, curl, healthcheck) no pasan por CORS.
+function corsOptions(): cors.CorsOptions {
+  const raw = process.env['CORS_ORIGINS']?.trim();
+  if (!raw) return {};
+  const allowed = new Set(
+    raw
+      .split(',')
+      .map((origin) => origin.trim().replace(/\/+$/, ''))
+      .filter(Boolean)
+  );
+  return {
+    origin: (origin, callback) => callback(null, origin === undefined || allowed.has(origin)),
+  };
+}
+
 export function createApp(): Express {
   const app = express();
-  app.use(cors());
-  app.use(express.json());
+  // Detrás del proxy de Railway: X-Forwarded-* fiable (IP real del cliente).
+  app.set('trust proxy', 1);
+  app.use(cors(corsOptions()));
+  // Los lotes de registros del desktop/tablet (hasta 500) pueden superar el
+  // límite por defecto de 100 kB.
+  app.use(express.json({ limit: '1mb' }));
+  if (process.env['NODE_ENV'] !== 'test') app.use(requestLog);
 
-  app.get('/api/health', (_req, res) => res.json({ ok: true }));
+  // Healthcheck (Railway lo comprueba en cada deploy): incluye ping a la BD.
+  app.get('/api/health', async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({ ok: true });
+    } catch {
+      res.status(503).json({ ok: false, error: 'Base de datos no disponible' });
+    }
+  });
 
   // Auth y tracking (apps de escritorio/tablet)
   app.use('/api/empresas', empresasRouter);

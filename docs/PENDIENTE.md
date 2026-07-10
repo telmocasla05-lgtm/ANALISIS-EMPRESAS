@@ -9,7 +9,8 @@ un cliente real (Fase E).
 
 1. **[bloquea piloto]** Rate limiting por IP en `/api/auth/pin` y `/api/admin/auth/login`
    (el login admin no tiene hoy *ningún* freno — ver Seguridad).
-2. **[bloquea piloto]** CORS con lista blanca + cabeceras de seguridad (`helmet`).
+2. **[bloquea piloto]** Cabeceras de seguridad (`helmet`). ~~CORS con lista
+   blanca~~ hecho el 2026-07-10 (`CORS_ORIGINS`, ver docs/DEPLOY.md).
 3. **[bloquea piloto]** Idempotencia de la ingesta de registros (los reintentos del
    desktop/tablet pueden duplicar horas).
 4. ~~`ANTHROPIC_API_KEY` válida en el backend y un informe real generado y
@@ -17,8 +18,9 @@ un cliente real (Fase E).
    piloto — ver Funcional).
 5. **[bloquea piloto]** Firma/notarización de los builds de escritorio y aviso
    LOPDGDD de primer uso (desktop y tablet).
-6. Decidir hosting de la web de tablet, política de sesiones huérfanas, zona
-   horaria de los resúmenes y CRUD de empresas para SUPERADMIN (ver secciones).
+6. Decidir política de sesiones huérfanas, zona horaria de los resúmenes y CRUD
+   de empresas para SUPERADMIN (ver secciones). ~~Hosting de la web de tablet~~
+   decidido el 2026-07-10: Vercel (ver docs/DEPLOY.md).
 
 ## Seguridad y robustez
 
@@ -30,9 +32,10 @@ un cliente real (Fase E).
   freno), así que las contraseñas de admin son atacables por fuerza bruta sin
   restricción. Añadir `express-rate-limit` (mínimo en `/api/auth/pin` y
   `/api/admin/auth/login`) antes del piloto.
-- **CORS abierto.** `app.use(cors())` acepta cualquier origen. En producción, lista
-  blanca con los dominios del panel admin y de la web de tablet (la app Electron no
-  necesita CORS).
+- ~~**CORS abierto.**~~ Resuelto el 2026-07-10: con `CORS_ORIGINS` definido (lista de
+  orígenes separados por comas — en producción, los dominios de Vercel del panel y la
+  tablet) solo se aceptan esos orígenes; sin definir sigue abierto (solo desarrollo).
+  Las peticiones sin cabecera `Origin` (app Electron, curl) no pasan por CORS.
 - **Sin cabeceras de seguridad** (`helmet` o equivalente).
 - **Tokens JWT sin revocación.** El token de empleado dura 16 h y el de admin 12 h;
   si se filtra uno no hay forma de invalidarlo (no hay lista de revocación ni refresh).
@@ -92,10 +95,10 @@ un cliente real (Fase E).
   `GET /api/categorias` devuelve todas las de la empresa + sector (en la Clínica Demo
   son 5, dentro del objetivo de 4-6 botones). Si un cliente real necesita botones
   distintos por rol, añadir la relación al esquema y su CRUD de admin.
-- **Hosting de la web de tablet.** En desarrollo el proxy de Vite evita CORS; en
-  producción, decidir entre servir el build estático desde el propio backend (mismo
-  origen, recomendado) o hosting separado (Vercel) + CORS con lista blanca y
-  `serverUrl` configurado en cada dispositivo.
+- ~~**Hosting de la web de tablet.**~~ Decidido el 2026-07-10: Vercel (proyecto
+  separado del panel) + CORS con lista blanca (`CORS_ORIGINS`); el `serverUrl` por
+  defecto de cada dispositivo sale del build (`VITE_API_URL`), sin configuración
+  manual. Ver docs/DEPLOY.md.
 - **Alta de empresas y admins solo por seed/BD.** No hay API para crear empresas ni
   usuarios admin: para dar de alta un cliente real hay que tocar la BD. Necesario un
   CRUD de empresas para SUPERADMIN antes de operar con más de un cliente.
@@ -132,18 +135,20 @@ un cliente real (Fase E).
 
 ## Infraestructura y DX
 
-- **`prisma generate` no es automático.** Tras un pull con cambios de esquema, el
-  cliente generado (`src/generated/prisma`, ignorado por git) queda desactualizado y
-  los tests fallan con errores confusos (pasó en esta revisión). Añadir `postinstall`
-  en el backend que ejecute `prisma generate`.
+- ~~**`prisma generate` no es automático.**~~ Resuelto el 2026-07-10: `postinstall`
+  en el backend ejecuta `prisma generate` en cada `npm install` (también en el build
+  de Railway). Sigue haciendo falta `npm run db:migrate` tras un pull con migraciones
+  nuevas.
 - **`shared` requiere build manual.** El backend importa `@digital-power/shared` desde
   `dist/`, que no existe hasta ejecutar su build (pasó en esta revisión: typecheck roto
   tras clonar). Valorar compilar `shared` en `postinstall` o pasar a project references.
 - ~~**`.env.test` lleva el usuario de BD de una máquina concreta.**~~ Resuelto el
   2026-07-09: `TEST_DATABASE_URL` sobreescribe la URL del `.env.test` (en
   `vitest.config.ts` y `scripts/test-db-setup.sh`) sin tocar el archivo.
-- **Sin logging estructurado.** El error handler hace `console.error` y responde 500
-  genérico; en Railway convendrá logging estructurado y algún identificador de request.
+- **Sin logging estructurado.** Desde el 2026-07-10 hay log de una línea por petición
+  (método, ruta, status, duración; el healthcheck se omite) y el error handler incluye
+  método/ruta junto al stack, suficiente para leer los Deploy Logs de Railway. Sigue
+  pendiente: logs JSON estructurados e identificador de request si hace falta correlar.
 - **Sin paginación en los listados admin** (empleados, reglas, sesiones — estas
   últimas con tope de 1000 filas por respuesta). Aceptable para el tamaño de cliente
   actual; revisar si algún cliente supera el centenar de filas o el tope de sesiones
