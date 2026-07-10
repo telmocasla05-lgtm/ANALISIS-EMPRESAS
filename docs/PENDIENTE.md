@@ -1,14 +1,35 @@
 # Deuda técnica y decisiones pendientes
 
-Estado a cierre de la Fase A (revisión del 2026-07-08). Nada de esta lista bloquea
-las fases B–D, pero conviene resolver los puntos de seguridad antes del piloto (Fase E).
+Estado a cierre de la revisión final del MVP (2026-07-10, con las fases A–D
+completas). Nada de esta lista bloquea el desarrollo, pero los puntos marcados
+como **[bloquea piloto]** deben resolverse antes de poner el sistema delante de
+un cliente real (Fase E).
+
+## Imprescindible antes del piloto (resumen)
+
+1. **[bloquea piloto]** Rate limiting por IP en `/api/auth/pin` y `/api/admin/auth/login`
+   (el login admin no tiene hoy *ningún* freno — ver Seguridad).
+2. **[bloquea piloto]** CORS con lista blanca + cabeceras de seguridad (`helmet`).
+3. **[bloquea piloto]** Idempotencia de la ingesta de registros (los reintentos del
+   desktop/tablet pueden duplicar horas).
+4. ~~`ANTHROPIC_API_KEY` válida en el backend y un informe real generado y
+   revisado de principio a fin.~~ Hecho el 2026-07-10 (rotar la clave antes del
+   piloto — ver Funcional).
+5. **[bloquea piloto]** Firma/notarización de los builds de escritorio y aviso
+   LOPDGDD de primer uso (desktop y tablet).
+6. Decidir hosting de la web de tablet, política de sesiones huérfanas, zona
+   horaria de los resúmenes y CRUD de empresas para SUPERADMIN (ver secciones).
 
 ## Seguridad y robustez
 
 - **Rate limiting global ausente.** El bloqueo por PIN (5 fallos → 5 min) es por
   empleado, pero `GET /api/empresas/:slug/empleados` expone los IDs de empleado y no
-  hay límite por IP: un atacante puede rotar entre empleados. Añadir `express-rate-limit`
-  (mínimo en `/api/auth/pin` y `/api/admin/auth/login`) antes del piloto.
+  hay límite por IP: un atacante puede rotar entre empleados. **Peor aún — verificado
+  en vivo el 2026-07-10:** el login del panel (`/api/admin/auth/login`) no tiene ni
+  bloqueo por usuario ni límite por IP (8 intentos fallidos seguidos → ocho 401 sin
+  freno), así que las contraseñas de admin son atacables por fuerza bruta sin
+  restricción. Añadir `express-rate-limit` (mínimo en `/api/auth/pin` y
+  `/api/admin/auth/login`) antes del piloto.
 - **CORS abierto.** `app.use(cors())` acepta cualquier origen. En producción, lista
   blanca con los dominios del panel admin y de la web de tablet (la app Electron no
   necesita CORS).
@@ -84,11 +105,25 @@ las fases B–D, pero conviene resolver los puntos de seguridad antes del piloto
   configurable por empresa. Ojo: el panel muestra las horas de las sesiones en la TZ
   local del navegador, así que una sesión cerca de medianoche puede caer en el día
   UTC anterior al filtrar.
-- **Validar la generación de informes contra la API real de Claude.** El generador
-  (implementado el 2026-07-10) está probado con la API mockeada y la agregación
-  verificada contra datos reales, pero falta un informe generado de verdad: requiere
-  una `ANTHROPIC_API_KEY` con saldo en el `.env` del backend de la máquina donde se
-  pruebe (el flujo completo de estados y el editor del panel ya funcionan sin ella).
+- ~~**Validar la generación de informes contra la API real de Claude.**~~ Resuelto
+  el 2026-07-10 (revisión final del MVP): con una `ANTHROPIC_API_KEY` real en
+  `backend/.env` se generó un informe de verdad sobre los datos fichados ese día
+  (42 s, `claude-sonnet-5`) y se recorrió con él el ciclo completo editar →
+  REVISADO → export a PDF. Para repetir la comprobación en otra máquina o tras
+  cambios en el prompt: `npx tsx scripts/verify-informe-real.ts --guardar` (desde
+  `backend/`, con datos fichados en el día o pasando `--desde/--hasta`) — valida
+  la estructura y que las 3 recomendaciones citen plantillas del sector, y deja
+  el borrador en BD para revisarlo en el panel. Ojo: la clave usada se compartió
+  por chat durante la revisión; conviene rotarla desde la consola de Anthropic
+  antes del piloto (crear una nueva y borrar la antigua, sin coste).
+- **Fechas del periodo del informe con +1 día en el panel (TZ).** El backend
+  guarda el periodo en días UTC y devuelve `hasta` como fin de día UTC
+  (`23:59:59.999Z`); el panel y el PDF lo formatean con `fmtFecha` en la zona
+  horaria local, así que en España (UTC+1/+2) el "hasta" se muestra un día más
+  tarde (visto en la revisión del 2026-07-10: periodo de un solo día mostrado
+  como "10 jul – 11 jul"). Mismo fondo que el punto de zona horaria de abajo:
+  formatear esas fechas con `timeZone: 'UTC'` (como ya hace el título que genera
+  el backend) o decidir la TZ de negocio de una vez.
 - **La frecuencia de muestreo por empresa aún no la consume el desktop.** Desde el
   2026-07-09 existe `companies.sample_interval_seconds` (editable en el panel, 5–10 s)
   y el login PIN la devuelve (`sampleIntervalSeconds`), pero la app de escritorio sigue
