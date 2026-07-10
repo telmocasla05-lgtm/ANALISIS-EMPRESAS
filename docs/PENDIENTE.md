@@ -21,7 +21,8 @@ las fases B–D, pero conviene resolver los puntos de seguridad antes del piloto
   Opciones: índice único `(session_id, timestamp)` con `skipDuplicates`, o un id de
   lote idempotente. **Más urgente desde 2026-07-09:** el desktop ya reintenta lotes
   (cada 60 s, troceados a 500) y además recupera pendientes desde disco en el
-  siguiente turno; un timeout con inserción exitosa duplica de verdad.
+  siguiente turno; un timeout con inserción exitosa duplica de verdad. La tablet
+  (Fase C) reintenta igual (buffer en localStorage + recuperación al siguiente login).
 - **Timestamps de registros sin validar contra la sesión.** Se acepta cualquier
   timestamp ISO (pasado o futuro, fuera de la ventana ON→OFF). Valorar acotarlos a
   `[startedAt, endedAt]` de la sesión. Ojo: la recuperación de pendientes del desktop
@@ -49,16 +50,31 @@ las fases B–D, pero conviene resolver los puntos de seguridad antes del piloto
   compilar en Windows). Decidir para el piloto si basta el ZIP portable.
 - **Icono propio de la app.** Los builds llevan el icono por defecto de Electron;
   faltan `.icns` (Mac) y `.ico` (Windows) con la marca de Digital Power.
-- **Aviso LOPDGDD de primer uso** (§7): pendiente en la app de escritorio.
+- **Aviso LOPDGDD de primer uso** (§7): pendiente en la app de escritorio y en la
+  web de tablet.
 
 - **Sesiones huérfanas.** Si el equipo se apaga sin pulsar OFF, la sesión queda abierta
   indefinidamente y el siguiente ON devuelve 409. Falta política de cierre: job que
   cierre sesiones sin registros recientes (usar el `inactivityMinutes` de la empresa)
   y/o cerrar la anterior automáticamente al hacer ON.
-- **Selección activa de la tablet (Fase C).** `POST /sesiones/:id/registros` está
-  pensado para tracking pasivo (app/domain/título → motor de reglas). La tablet manda
-  la categoría elegida directamente: decidir si el endpoint acepta `categoryId`
-  explícito o si se modela con una convención de `app` reservada.
+- ~~**Selección activa de la tablet (Fase C).**~~ Resuelto el 2026-07-09: el endpoint
+  acepta `categoryId` explícito (validado contra las categorías visibles del tenant;
+  una ajena da 400) y se salta el motor de reglas. `isIdle` sigue sin categorizarse.
+- **Sin detección de inactividad en la tablet.** El tramo activo sigue contando hasta
+  el OFF o el siguiente toque, incluso con la pantalla bloqueada (el sampler rellena
+  retroactivamente las muestras al despertar: es el contrato de la selección activa).
+  Si alguien olvida el OFF, infla las horas de esa categoría — se agrava con la
+  política de sesiones huérfanas de arriba. Decidir tope de relleno retroactivo y/o
+  aviso tipo "¿sigues en esta tarea?" pasado un umbral.
+- **Categorías sin filtrar por rol.** La especificación de la tablet habla de "las
+  categorías del rol del empleado", pero el modelo no tiene relación rol↔categoría:
+  `GET /api/categorias` devuelve todas las de la empresa + sector (en la Clínica Demo
+  son 5, dentro del objetivo de 4-6 botones). Si un cliente real necesita botones
+  distintos por rol, añadir la relación al esquema y su CRUD de admin.
+- **Hosting de la web de tablet.** En desarrollo el proxy de Vite evita CORS; en
+  producción, decidir entre servir el build estático desde el propio backend (mismo
+  origen, recomendado) o hosting separado (Vercel) + CORS con lista blanca y
+  `serverUrl` configurado en cada dispositivo.
 - **Alta de empresas y admins solo por seed/BD.** No hay API para crear empresas ni
   usuarios admin: para dar de alta un cliente real hay que tocar la BD. Necesario un
   CRUD de empresas para SUPERADMIN antes de operar con más de un cliente.
@@ -95,6 +111,10 @@ las fases B–D, pero conviene resolver los puntos de seguridad antes del piloto
   últimas con tope de 1000 filas por respuesta). Aceptable para el tamaño de cliente
   actual; revisar si algún cliente supera el centenar de filas o el tope de sesiones
   en un rango largo.
+- **El espejo del buffer de la tablet se reescribe entero en cada muestra.** Cada 5 s
+  se serializa todo el pendiente a localStorage; irrelevante mientras el flush de 60 s
+  lo vacíe, pero con horas sin red son cientos de KB por escritura. Si molesta:
+  IndexedDB o persistencia incremental.
 - **Constante de muestreo duplicada.** `SAMPLE_CAP_SECONDS = 10` vive en
   `services/resumen.ts` y `scripts/simulate-session.ts` la replica; desde 2026-07-09
   el desktop acota su intervalo configurable a 5–10 s por la misma razón

@@ -2,6 +2,7 @@
 // acumula RegistroInput en memoria (con espejo en disco para no perder nada
 // si la app se cierra) y los sube por lotes cada FLUSH_INTERVAL_MS, con un
 // flush final (con reintentos) al cerrar el turno.
+import { MAX_BATCH_SIZE } from '@digital-power/shared';
 import type { RegistroInput } from '@digital-power/shared';
 import type { TrackerStatus } from '../../common/ipc-contract';
 import type { ActivityDetector } from './activity-detector';
@@ -11,10 +12,6 @@ import type { ActivityDetector } from './activity-detector';
 // se acota a 5–10 s para encajar en ese tope.
 const DEFAULT_SAMPLE_INTERVAL_MS = 5_000;
 const FLUSH_INTERVAL_MS = 60_000;
-// El express.json() del backend admite ~100 KB por petición: los lotes grandes
-// (p. ej. tras horas sin conexión) se trocean para no chocar con ese límite.
-// Exportado porque la recuperación de pendientes (ipc.ts) trocea igual.
-export const MAX_BATCH_SIZE = 500;
 // Acota memoria si el backend está caído mucho rato (~7 h de lecturas a 5 s)
 const MAX_BUFFERED_RECORDS = 5_000;
 const FINAL_FLUSH_ATTEMPTS = 3;
