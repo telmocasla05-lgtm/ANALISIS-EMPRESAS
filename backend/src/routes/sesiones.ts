@@ -102,10 +102,35 @@ sesionesRouter.post(
         res.status(400).json({ error: 'Cada registro necesita timestamp (ISO) y app' });
         return;
       }
+      if (registro.categoryId !== undefined && typeof registro.categoryId !== 'string') {
+        res.status(400).json({ error: 'categoryId debe ser un string' });
+        return;
+      }
     }
 
     const company = await prisma.company.findUniqueOrThrow({ where: { id: companyId } });
     const rules = await loadActiveRules(companyId, company.sector);
+
+    // Selección activa (tablet): los categoryId explícitos se validan contra
+    // las categorías visibles de esta empresa (propias + de su sector) — nunca
+    // se acepta una categoría de otro tenant.
+    const explicitIds = [
+      ...new Set(
+        body.registros
+          .map((registro) => registro.categoryId)
+          .filter((id): id is string => typeof id === 'string')
+      ),
+    ];
+    if (explicitIds.length > 0) {
+      const validCategories = await prisma.category.findMany({
+        where: { id: { in: explicitIds }, OR: [{ companyId }, { sector: company.sector }] },
+        select: { id: true },
+      });
+      if (validCategories.length !== explicitIds.length) {
+        res.status(400).json({ error: 'categoryId no válido para esta empresa' });
+        return;
+      }
+    }
 
     await prisma.activityRecord.createMany({
       data: body.registros.map((registro) => ({
@@ -116,7 +141,7 @@ sesionesRouter.post(
         windowTitle: registro.windowTitle ?? null,
         domain: registro.domain ?? null,
         isIdle: registro.isIdle ?? false,
-        categoryId: registro.isIdle ? null : categorizeRecord(registro, rules),
+        categoryId: registro.isIdle ? null : (registro.categoryId ?? categorizeRecord(registro, rules)),
       })),
     });
 
