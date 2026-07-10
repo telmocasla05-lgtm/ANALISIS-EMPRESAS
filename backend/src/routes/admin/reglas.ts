@@ -37,15 +37,24 @@ adminReglasRouter.get(
   })
 );
 
+// Campo del registro sobre el que aplica cada tipo de patrón (mismo criterio
+// que el motor de categorización: subcadena, case-insensitive).
+const PATTERN_FIELD: Record<PatternType, 'app' | 'domain' | 'windowTitle'> = {
+  APP: 'app',
+  DOMAIN: 'domain',
+  TITLE: 'windowTitle',
+};
+
 adminReglasRouter.post(
   '/',
   asyncHandler(async (req, res) => {
     const companyId = req.params['companyId']!;
-    const { patternType, pattern, categoryId, priority } = req.body as Partial<{
+    const { patternType, pattern, categoryId, priority, aplicarAExistentes } = req.body as Partial<{
       patternType: PatternType;
       pattern: string;
       categoryId: string;
       priority: number;
+      aplicarAExistentes: boolean;
     }>;
     if (!patternType || !PATTERN_TYPES.includes(patternType) || typeof pattern !== 'string' || !pattern.trim() || typeof categoryId !== 'string') {
       res.status(400).json({ error: 'patternType, pattern y categoryId son obligatorios' });
@@ -64,7 +73,26 @@ adminReglasRouter.post(
     const rule = await prisma.categorizationRule.create({
       data: { companyId, patternType, pattern: pattern.trim(), categoryId, priority: priority ?? 100 },
     });
-    res.status(201).json(rule);
+
+    // Acción rápida del dashboard: además de crear la regla (que aplica a los
+    // registros futuros al insertarse), recategoriza los registros activos que
+    // siguen sin categoría y coinciden con el patrón. Solo toca los que están a
+    // null: no pisa categorizaciones previas ni la selección activa de la tablet.
+    let registrosActualizados = 0;
+    if (aplicarAExistentes === true) {
+      const result = await prisma.activityRecord.updateMany({
+        where: {
+          companyId,
+          categoryId: null,
+          isIdle: false,
+          [PATTERN_FIELD[patternType]]: { contains: rule.pattern, mode: 'insensitive' },
+        },
+        data: { categoryId: rule.categoryId },
+      });
+      registrosActualizados = result.count;
+    }
+
+    res.status(201).json({ ...rule, registrosActualizados });
   })
 );
 

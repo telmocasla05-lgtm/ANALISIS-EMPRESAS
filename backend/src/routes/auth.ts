@@ -43,12 +43,13 @@ authRouter.post(
     // saber cuándo avisar; se entrega con el login para ahorrar otra llamada.
     const company = await prisma.company.findUniqueOrThrow({
       where: { id: result.employee.companyId },
-      select: { inactivityMinutes: true },
+      select: { inactivityMinutes: true, sampleIntervalSeconds: true },
     });
     const response: PinLoginResponse = {
       token,
       expiresAt: new Date(Date.now() + EMPLOYEE_SESSION_TTL_SECONDS * 1000).toISOString(),
       inactivityMinutes: company.inactivityMinutes,
+      sampleIntervalSeconds: company.sampleIntervalSeconds,
       employee: result.employee,
     };
     res.json(response);

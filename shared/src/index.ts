@@ -30,6 +30,12 @@ export interface PinLoginResponse {
   expiresAt: string;
   /** Umbral de aviso de inactividad de la empresa (§6), para el tracking pasivo. */
   inactivityMinutes: number;
+  /**
+   * Frecuencia de muestreo configurada para la empresa (5-10 s, §8). Las apps
+   * todavía usan su intervalo local (ver PENDIENTE.md); se entrega ya con el
+   * login para poder adoptarla sin otra llamada.
+   */
+  sampleIntervalSeconds: number;
   employee: {
     id: string;
     name: string;
@@ -104,6 +110,45 @@ export interface AdminLoginResponse {
   };
 }
 
+/** Empresa vista desde el panel admin, con sus ajustes configurables. */
+export interface EmpresaAdmin {
+  id: string;
+  slug: string;
+  name: string;
+  sector: Sector;
+  avgHourlyCostCents: number; // coste/hora medio en céntimos (§10)
+  inactivityMinutes: number;
+  sampleIntervalSeconds: number;
+}
+
+/** Empleado en el CRUD del panel admin (el PIN nunca viaja de vuelta). */
+export interface EmpleadoAdminItem {
+  id: string;
+  name: string;
+  roleId: string;
+  roleName: string;
+  avatarUrl: string | null;
+  active: boolean;
+}
+
+export interface RolAdmin {
+  id: string;
+  companyId: string;
+  name: string;
+}
+
+/** Regla visible en el panel: propias (editables) + plantilla de sector (solo lectura). */
+export interface ReglaAdminItem {
+  id: string;
+  patternType: PatternType;
+  pattern: string;
+  priority: number;
+  active: boolean;
+  categoryId: string;
+  categoryName: string;
+  scope: 'empresa' | 'sector';
+}
+
 export interface ResumenCategoria {
   categoryId: string | null;
   categoryName: string;
@@ -119,10 +164,40 @@ export interface ResumenEmpleado {
   porCategoria: ResumenCategoria[];
 }
 
-export interface ResumenSemanal {
-  semana: { desde: string; hasta: string };
+/** Resumen agregado de un rango de fechas (por defecto la semana en curso). */
+export interface Resumen {
+  rango: { desde: string; hasta: string };
+  /** Horas y coste del tiempo activo (la inactividad no cuenta ni cuesta, §6). */
+  totales: { horas: number; costeEstimado: number; horasInactivas: number };
   porCategoria: ResumenCategoria[];
   porEmpleado: ResumenEmpleado[];
+}
+
+/** Punto de la evolución semanal (horas activas de la semana que empieza en `semana`). */
+export interface EvolucionSemana {
+  semana: string; // lunes de la semana (YYYY-MM-DD, UTC)
+  horas: number;
+  costeEstimado: number;
+}
+
+/** Grupo de registros sin categorizar (misma app + dominio), para crear reglas desde el panel. */
+export interface SinCategorizarGrupo {
+  app: string;
+  domain: string | null;
+  ejemploTitulo: string | null;
+  registros: number;
+  horas: number;
+}
+
+/** Sesión de trabajo vista desde el panel admin (registro horario). */
+export interface SesionAdmin {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  device: Device;
+  startedAt: string;
+  endedAt: string | null; // null = sesión abierta
+  duracionMinutos: number; // para sesiones abiertas, duración hasta ahora
 }
 
 // ── Cliente HTTP de la API de fichaje ──────────────────────────────────
